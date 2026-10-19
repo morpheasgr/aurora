@@ -25,8 +25,9 @@ var out = resolve(plugin, 'assets/js/aurora');
 var version = JSON.parse(readFileSync(resolve(root, 'package.json'), 'utf8')).version;
 var src = (name) => resolve(root, 'packages/bundle/src', name);
 
-// Modules offered in the block editor. Keep in sync with Plugin::MODULES.
-var MODULES = ['text', 'children', 'gradient'];
+// Modules shipped with the block adapter: the inspector modules
+// (Plugin::MODULES) plus the Morph Card block. Keep in sync with Plugin::SCRIPTS.
+var MODULES = ['text', 'children', 'gradient', 'cursor', 'morph-card'];
 
 var BUDGETS = JSON.parse(readFileSync(resolve(root, 'tools/budgets.json'), 'utf8'));
 

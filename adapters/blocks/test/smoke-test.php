@@ -24,13 +24,44 @@ namespace {
 	function wp_strip_all_tags( $s ) {
 		return trim( strip_tags( $s ) );
 	}
+	function sanitize_text_field( $s ) {
+		return trim( preg_replace( '/\s+/', ' ', strip_tags( $s ) ) );
+	}
+	function sanitize_textarea_field( $s ) {
+		return trim( strip_tags( $s ) );
+	}
+	function esc_url_raw( $url, $protocols = null ) {
+		return preg_match( '#^https?://#i', $url ) ? $url : '';
+	}
+	function esc_url( $url ) {
+		return htmlspecialchars( $url, ENT_QUOTES );
+	}
+	function esc_attr( $s ) {
+		return htmlspecialchars( $s, ENT_QUOTES );
+	}
+	function esc_html( $s ) {
+		return htmlspecialchars( $s, ENT_QUOTES );
+	}
+	$GLOBALS['enqueued'] = [];
+	function wp_enqueue_script( $h ) {
+		$GLOBALS['enqueued'][] = $h;
+	}
+	function get_block_wrapper_attributes( $extra = [] ) {
+		$out = 'class="wp-block-aurora-morph-card"';
+		foreach ( $extra as $k => $v ) {
+			$out .= ' ' . $k . '="' . htmlspecialchars( $v, ENT_QUOTES ) . '"';
+		}
+		return $out;
+	}
 
 	require AURORA_BLOCKS_PATH . 'includes/class-schemas.php';
 	require AURORA_BLOCKS_PATH . 'includes/class-block-targets.php';
+	require AURORA_BLOCKS_PATH . 'includes/class-morph-card-block.php';
 	require AURORA_BLOCKS_PATH . 'includes/class-plugin.php';
 
 	use Aurora\Blocks\Schemas;
 	use Aurora\Blocks\Plugin;
+	use Aurora\Blocks\Morph_Card_Block;
 
 	$failed = 0;
 	function check( $label, $actual, $expected ) {
@@ -48,7 +79,7 @@ namespace {
 		exit( 1 );
 	}
 
-	foreach ( Plugin::MODULES as $module ) {
+	foreach ( Plugin::SCRIPTS as $module ) {
 		check( "schema $module loaded", is_array( Schemas::get( $module ) ), true );
 	}
 
@@ -97,6 +128,50 @@ namespace {
 	// Heading gradient defaults to painting the text.
 	$r = Plugin::attributes_for( 'core/heading', [ 'gradient' => [ 'type' => 'linear' ] ] );
 	check( 'heading gradient paints text', $r['attributes']['data-aurora-gradient-options'] ?? null, '{"target":"text"}' );
+
+	// Cursor: no primary option, so the attribute is empty; options as usual.
+	$r = Plugin::attributes_for( 'core/group', [ 'cursor' => [] ] );
+	check( 'cursor attribute present and empty', $r['attributes']['data-aurora-cursor'] ?? null, '' );
+	check( 'cursor without options', isset( $r['attributes']['data-aurora-cursor-options'] ), false );
+	$r = Plugin::attributes_for( 'core/cover', [ 'cursor' => [ 'dotColor' => '#000000', 'ringSize' => 999 ] ] );
+	check( 'cursor options clamped', $r['attributes']['data-aurora-cursor-options'] ?? null, '{"dotColor":"#000000","ringSize":200}' );
+	check( 'cursor not offered on heading', Plugin::attributes_for( 'core/heading', [ 'cursor' => [] ] )['attributes'], [] );
+
+	// Morph Card: states are cleaned, unsafe values dropped, placeholder used.
+	$o = Morph_Card_Block::options(
+		[
+			'states'        => [
+				[ 'template' => 'post', 'photo' => 'https://x.test/a.jpg', 'username' => '<b>flora</b>', 'likes' => '12', 'bogus' => 1 ],
+				[ 'template' => 'custom', 'photo' => 'javascript:alert(1)', 'headerHtml' => '<script>x</script>' ],
+				[ 'template' => 'polaroid', 'caption' => 'Hi', 'size' => 'mini', 'frame' => 'neon', 'durationMs' => 99 ],
+				'not-a-state',
+			],
+			'loop'          => false,
+			'autoplay'      => true,
+			'captionEffect' => 'letters',
+			'labels'        => [ 'likes' => 'μου αρέσει', 'unknown' => 'x', 'follow' => '' ],
+		]
+	);
+	check( 'morph: three valid states kept', count( $o['states'] ), 3 );
+	check( 'morph: post state', $o['states'][0], [ 'template' => 'post', 'photo' => 'https://x.test/a.jpg', 'username' => 'flora', 'likes' => 12 ] );
+	check( 'morph: custom template becomes post', $o['states'][1]['template'], 'post' );
+	check( 'morph: unsafe photo replaced by placeholder', $o['states'][1]['photo'], Morph_Card_Block::placeholder() );
+	check( 'morph: raw html dropped', isset( $o['states'][1]['headerHtml'] ), false );
+	check( 'morph: polaroid size kept, bad frame dropped, duration clamped', $o['states'][2], [ 'template' => 'polaroid', 'photo' => Morph_Card_Block::placeholder(), 'caption' => 'Hi', 'size' => 'mini', 'durationMs' => 500 ] );
+	check( 'morph: options differ from defaults only', [ $o['loop'] ?? null, isset( $o['autoplay'] ), $o['captionEffect'] ?? null ], [ false, false, 'letters' ] );
+	check( 'morph: labels filtered', $o['labels'], [ 'likes' => 'μου αρέσει' ] );
+
+	$g = Morph_Card_Block::state( [ 'template' => 'profile', 'gridPhotos' => [ [ 'url' => 'https://x.test/1.jpg', 'id' => 3 ], 'https://x.test/2.jpg', 'ftp://bad', [ 'url' => 'javascript:x' ] ] ] );
+	check( 'morph: profile grid photos cleaned', $g['gridPhotos'] ?? null, [ 'https://x.test/1.jpg', 'https://x.test/2.jpg' ] );
+	check( 'morph: grid photos only on profile', isset( Morph_Card_Block::state( [ 'template' => 'post', 'gridPhotos' => [ 'https://x.test/1.jpg' ] ] )['gridPhotos'] ), false );
+
+	$block = Morph_Card_Block::instance();
+	$html  = $block->render( [ 'states' => [ [ 'template' => 'polaroid', 'photo' => 'https://x.test/p.jpg', 'caption' => 'A "quote"' ] ] ] );
+	check( 'morph: render has the data attribute', strpos( $html, 'data-aurora-morph-card=""' ) !== false, true );
+	check( 'morph: render escapes the options json', strpos( $html, 'data-aurora-morph-card-options="{&quot;states&quot;' ) !== false, true );
+	check( 'morph: fallback image and caption', strpos( $html, '<img src="https://x.test/p.jpg" alt="A &quot;quote&quot;"' ) !== false, true );
+	check( 'morph: script enqueued', in_array( 'aurora-morph-card', $GLOBALS['enqueued'], true ), true );
+	check( 'morph: no states renders nothing', $block->render( [ 'states' => [] ] ), '' );
 
 	// The aurora_blocks_targets filter can offer a module on another block.
 	$GLOBALS['filters']['aurora_blocks_targets'] = function ( $t ) {

@@ -32,11 +32,13 @@
         text: __('Text animation', 'aurora-for-blocks'),
         children: __('Animate inner blocks', 'aurora-for-blocks'),
         gradient: __('Gradient', 'aurora-for-blocks'),
+        cursor: __('Custom cursor', 'aurora-for-blocks'),
     };
     var HELP = {
         text: __('Splits the text into characters, words or lines and animates them.', 'aurora-for-blocks'),
         children: __('Staggered entrance, hover and proximity effects for the blocks inside this one.', 'aurora-for-blocks'),
         gradient: __('Animated multi-stop gradient for the background or the text.', 'aurora-for-blocks'),
+        cursor: __('A dot-and-ring cursor that follows the pointer inside this block (mouse and trackpad only).', 'aurora-for-blocks'),
     };
 
     function offered(blockName) {
@@ -169,9 +171,12 @@
         function toggle(checked) {
             if (!checked) return store(null);
             var first = {};
-            first[schema.primary] = Object.prototype.hasOwnProperty.call(defaults, schema.primary)
-                ? defaults[schema.primary]
-                : schema.options[schema.primary].default;
+            // Modules without a primary option (cursor) are switched on by an empty object.
+            if (schema.primary) {
+                first[schema.primary] = Object.prototype.hasOwnProperty.call(defaults, schema.primary)
+                    ? defaults[schema.primary]
+                    : schema.options[schema.primary].default;
+            }
             store(first);
         }
 
@@ -179,7 +184,7 @@
             var next = Object.assign({}, saved);
             var option = schema.options[key];
             var fallback = Object.prototype.hasOwnProperty.call(defaults, key) ? defaults[key] : option.default;
-            if (key !== schema.primary && v === fallback) delete next[key];
+            if ((!schema.primary || key !== schema.primary) && v === fallback) delete next[key];
             else next[key] = v;
             store(next);
         }

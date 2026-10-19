@@ -2,8 +2,8 @@
 /**
  * Plugin Name:       Aurora for Blocks
  * Plugin URI:        https://github.com/zmdy/aurora
- * Description:       The open-source Swiss Army knife for animated web design, in the block editor and the Site Editor: text animations, animated children and gradients on core blocks. No code required.
- * Version:           0.1.0
+ * Description:       The open-source Swiss Army knife for animated web design, in the block editor and the Site Editor: text animations, animated children, gradients and a cursor on core blocks, plus a Morph Card block. No code required.
+ * Version:           0.2.0
  * Requires at least: 6.5
  * Requires PHP:      7.4
  * Author:            Aurora
@@ -28,6 +28,7 @@ define( 'AURORA_BLOCKS_URL', plugin_dir_url( __FILE__ ) );
 
 require_once AURORA_BLOCKS_PATH . 'includes/class-schemas.php';
 require_once AURORA_BLOCKS_PATH . 'includes/class-block-targets.php';
+require_once AURORA_BLOCKS_PATH . 'includes/class-morph-card-block.php';
 require_once AURORA_BLOCKS_PATH . 'includes/class-plugin.php';
 
 // The generated files are missing in a source checkout until

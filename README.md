@@ -63,7 +63,7 @@ Add the scripts in *Custom code*, then use *Custom attributes* on any element. S
 
 ### Block editor (Gutenberg and the Site Editor)
 
-`npm run pack:blocks` builds `build/aurora-for-blocks.zip`. Install it from *Plugins, Add New, Upload Plugin*, select a supported core block (heading, paragraph, button, group, columns, cover, gallery, site title…) and open the *Aurora* panel in the block settings. It offers the `text`, `children` and `gradient` modules; controls are generated from the module schemas.
+`npm run pack:blocks` builds `build/aurora-for-blocks.zip`. Install it from *Plugins, Add New, Upload Plugin*, select a supported core block (heading, paragraph, button, group, columns, cover, gallery, site title…) and open the *Aurora* panel in the block settings. It offers the `text`, `children`, `gradient` and `cursor` modules, plus a *Morph Card* block; controls are generated from the module schemas.
 
 Options are saved in the block's settings (the `aurora` attribute) and the data-attributes are added when the block renders, so the block's saved HTML never changes and works the same in posts, templates and template parts. Each module's script loads only on pages that use it. Animations play on the page and in Preview, not inside the editor.
 

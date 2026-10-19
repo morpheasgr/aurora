@@ -68,6 +68,13 @@ final class Block_Targets {
 				'selector' => '.wp-block-button__link',
 			],
 		],
+		'cursor'   => [
+			'core/group'      => [],
+			'core/cover'      => [],
+			'core/columns'    => [],
+			'core/column'     => [],
+			'core/media-text' => [],
+		],
 	];
 
 	/** @var array|null */

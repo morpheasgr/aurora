@@ -23,8 +23,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 final class Plugin {
 
-	/** Modules offered in the block editor. Keep in sync with tools/build-blocks.mjs. */
-	const MODULES = [ 'text', 'children', 'gradient' ];
+	/** Modules offered in the block inspector's Aurora panel. */
+	const MODULES = [ 'text', 'children', 'gradient', 'cursor' ];
+
+	/** Every module script the plugin ships. Keep in sync with tools/build-blocks.mjs. */
+	const SCRIPTS = [ 'text', 'children', 'gradient', 'cursor', 'morph-card' ];
 
 	/** Name of the block attribute that holds every module's options. */
 	const ATTRIBUTE = 'aurora';
@@ -44,6 +47,9 @@ final class Plugin {
 		add_filter( 'register_block_type_args', [ $this, 'add_attribute' ], 10, 2 );
 		add_filter( 'render_block', [ $this, 'render' ], 10, 2 );
 		add_action( 'enqueue_block_editor_assets', [ $this, 'enqueue_editor' ] );
+		add_action( 'enqueue_block_assets', [ $this, 'enqueue_canvas' ] );
+
+		Morph_Card_Block::instance();
 	}
 
 	/** Script handle of a module ("text" => "aurora-text"). */
@@ -59,7 +65,7 @@ final class Plugin {
 	public function register_scripts(): void {
 		$dir = 'assets/js/aurora/';
 		wp_register_script( 'aurora-core', AURORA_BLOCKS_URL . $dir . 'aurora.core.min.js', [], self::ver( $dir . 'aurora.core.min.js' ), true );
-		foreach ( self::MODULES as $module ) {
+		foreach ( self::SCRIPTS as $module ) {
 			$file = 'aurora.' . $module . '.min.js';
 			wp_register_script( self::handle( $module ), AURORA_BLOCKS_URL . $dir . $file, [ 'aurora-core' ], self::ver( $dir . $file ), true );
 		}
@@ -142,6 +148,19 @@ final class Plugin {
 			wp_enqueue_script( self::handle( $module ) );
 		}
 		return $tags->get_updated_html();
+	}
+
+	/**
+	 * Loads the runtime and the Morph Card module into the editor canvas (the
+	 * editor iframe), so the Morph Card block can preview itself. Automatic
+	 * initialization is off there: nothing animates unless a block asks for it.
+	 */
+	public function enqueue_canvas(): void {
+		if ( ! is_admin() ) {
+			return;
+		}
+		wp_add_inline_script( 'aurora-core', 'window.AuroraConfig = Object.assign({}, window.AuroraConfig, { autoInit: false });', 'before' );
+		wp_enqueue_script( self::handle( 'morph-card' ) );
 	}
 
 	public function enqueue_editor(): void {
